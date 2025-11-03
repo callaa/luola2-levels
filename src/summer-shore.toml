@@ -1,0 +1,9 @@
+title = "Summer Shore"
+starfield = true
+
+[script-settings]
+random-birds = 30
+random-fish = [
+	{count = 20, area = [0, 1690, 2560, 210]},
+	{count = 1, area = [546, 553, 212, 71]},
+]
