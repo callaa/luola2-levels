@@ -7,3 +7,7 @@ random-fish = [
 	{count = 20, area = [0, 1690, 2560, 210]},
 	{count = 1, area = [546, 553, 212, 71]},
 ]
+random-spiders = [
+	{count = 2, area = [2323, 1331, 215, 17]},
+	{count = 1, area = [2334, 1254, 98, 25]},
+]
