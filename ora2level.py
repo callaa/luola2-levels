@@ -112,12 +112,12 @@ def render_collisionmap(project):
         for layer in reversed(list(stack.children)):
             if not layer.visible:
                 continue
-            if TERRAIN_TYPE_RE.match(layer.name):
-                print(prefix, "paint", layer.name)
-                paint_layer(layer)
-            else:
+            if isinstance(layer, pyora.Group):
                 print(prefix, layer.name)
                 paint(layer, prefix + '  ')
+            elif TERRAIN_TYPE_RE.match(layer.name):
+                print(prefix, "paint", layer.name)
+                paint_layer(layer)
 
     paint(project.root)
 
@@ -125,6 +125,13 @@ def render_collisionmap(project):
     image.putpalette(list(itertools.chain(*PALETTE[:len(colormap)])))
     return image, colormap
 
+
+def get_parallax(project):
+    for layer in project.root:
+        if layer.name in ("Parallax", "Parallax.jpeg"):
+            fmt = 'jpeg' if layer.name.endswith('jpeg') else 'png'
+            return layer.get_image_data(), fmt
+    return None, None
 
 
 def make_thumbnail(src, target):
@@ -158,8 +165,6 @@ def main(input_path):
     project = pyora.Project.load(ora_path)
     print("Level size is", project.dimensions)
 
-    hide_non_terrain_layers(project.children)
-
     # Make collisionmap
     print("Rendering collisionmap...")
     cmap, colormap = render_collisionmap(project)
@@ -168,8 +173,22 @@ def main(input_path):
     print("Saving collisionmap:", terrain_filename)
     cmap.save(path.join(TARGET_DIR, terrain_filename))
 
+    # Extract parallax background image (if any)
+    print("Extracting background image...")
+    parallax, parallax_fmt = get_parallax(project)
+    if parallax:
+        if parallax_fmt == 'jpeg':
+            parallax = parallax.convert("RGB")
+        background_filename = f"{basename}-bg.{parallax_fmt}"
+        print("Saving background:", background_filename)
+        parallax.save(path.join(TARGET_DIR, background_filename))
+        levelinfo["background"] = background_filename
+    else:
+        print("No parallax background.")
+
     # Save artwork with non-terrain layers hidden
     print("Rendering artwork...")
+    hide_non_terrain_layers(project.children)
     artwork = pyora.Renderer(project).render()
     print("Saving artwork:", artwork_filename)
     artwork.save(path.join(TARGET_DIR, artwork_filename))

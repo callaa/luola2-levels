@@ -3,7 +3,7 @@ Luola II official level pack
 
 This is the official level pack to [Luola II](https://github.com/callaa/luola2/).
 
-To install, copy or symlink the `luola2/` folder into the game's `data/levels/` folder.
+To install, run `make.sh` and copy or symlink the `luola2/` folder into the game's `data/levels/` folder.
 
 
 ## Level structure
@@ -36,6 +36,7 @@ The script performs the following tasks automatically:
  * Merges all terrain layers: non-transparent pixels are assigned a palette index based on the layer's type
  * Discovers the level's water color (game uses this for destructible underwater terrain)
  * Generates a thumbnail image
+ * Extracts the parallax background (if included)
  * Adds filenames and the terrain type map to the TOML file
 
 The converter determines the type of the layer based on its name:
@@ -43,6 +44,7 @@ The converter determines the type of the layer based on its name:
  * Anything that looks like a terrain type (e.g. "ground" or "base-uw-i") is interpreted to contain terrain of that type. (The script does not validate that the type is actually supported by the game engine.)
  * Layers not named accordingly will be hidden
  * Layer group names are ignored. Layer groups may be arbitrarily nested.
+ * Layer or group named "Parallax" will be extracted as the parallax background image
 
 To convert an OpenRaster file:
 

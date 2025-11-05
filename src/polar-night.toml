@@ -1,0 +1,7 @@
+title = "Polar Night"
+
+[script-settings]
+snowfall = true
+random-fish = [
+	{count = 10, area = [0, 1525, 2560, 380]},
+]
