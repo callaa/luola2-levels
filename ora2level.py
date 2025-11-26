@@ -4,7 +4,7 @@
 # dependencies = ["pyora", "tomlkit"]
 # ///
 
-from PIL import Image
+from PIL import Image, ImageDraw
 import numpy
 import itertools
 import shutil
@@ -144,11 +144,19 @@ def get_parallax(project):
     return None, None
 
 
-def make_thumbnail(src, target):
-    with Image.open(src) as im:
-        im = im.convert("RGB")
-        im.thumbnail((256, 256))
-        im.save(target)
+def make_thumbnail(image):
+    im = image.convert("RGB")
+    im.thumbnail((image.size[0], 512))
+
+    # Add rounded edges
+    mask = Image.new("RGBA", im.size, color=(0, 0, 0, 0))
+    draw = ImageDraw.Draw(mask)
+    draw.rounded_rectangle(((0, 0), im.size), 32, fill=(255, 255, 255, 255))
+
+    thumbnail = Image.new("RGB", im.size, color=0)
+    thumbnail.paste(im, mask=mask)
+
+    return thumbnail
 
 
 def main(input_path):
@@ -205,9 +213,7 @@ def main(input_path):
 
     # Make thumbnail (from original ORA mergedimage)
     print("Saving thumbnail:", thumb_filename)
-    thumbnail = project.get_image_data(use_original=True).convert("RGB")
-    thumbnail.thumbnail((256, 256))
-    thumbnail.save(path.join(TARGET_DIR, thumb_filename))
+    make_thumbnail(project.get_image_data(use_original=True)).save(path.join(TARGET_DIR, thumb_filename))
 
     # Copy script (if set)
     if 'script' in levelinfo:
