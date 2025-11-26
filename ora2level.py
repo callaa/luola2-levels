@@ -4,15 +4,17 @@
 # dependencies = ["pyora", "tomlkit"]
 # ///
 
-import PIL
+from PIL import Image
 import numpy
 import itertools
+import shutil
 from os import path
+import sys
+import re
 
 import tomlkit
 import pyora
-import sys
-import re
+
 
 # Where to put output files (relative to working directory)
 TARGET_DIR = "luola2"
@@ -100,8 +102,8 @@ def render_collisionmap(project):
         global WATER_COLOR_SET
         if layer.name == "water" and not WATER_COLOR_SET:
             nonzero = numpy.where(mask == True)
-            pixelindex = (nonzero[0][0], nonzero[1][0])
-            watercolor = image.getpixel((nonzero[0][0], nonzero[1][0]))
+            pixelindex = (nonzero[1][0], nonzero[0][0])
+            watercolor = image.getpixel(pixelindex)
             PALETTE[colormap["water"]] = watercolor[0:3]
             print(f"Water color (#{colormap['water']}) set to {PALETTE[colormap['water']]}")
             WATER_COLOR_SET = True
@@ -111,17 +113,21 @@ def render_collisionmap(project):
     def paint(stack, prefix=''):
         for layer in reversed(list(stack.children)):
             if not layer.visible:
+                print(prefix, "not visible:", layer.name)
                 continue
-            if isinstance(layer, pyora.Group):
-                print(prefix, layer.name)
-                paint(layer, prefix + '  ')
-            elif TERRAIN_TYPE_RE.match(layer.name):
-                print(prefix, "paint", layer.name)
+
+            if TERRAIN_TYPE_RE.match(layer.name):
+                print(prefix, "paint:", layer.name)
                 paint_layer(layer)
+            elif isinstance(layer, pyora.Group):
+                print(prefix, "group:", layer.name)
+                paint(layer, prefix + '  ')
+            else:
+                print(prefix, "skip", layer.name)
 
     paint(project.root)
 
-    image = PIL.Image.fromarray(imagedata, 'P')
+    image = Image.fromarray(imagedata, 'P')
     image.putpalette(list(itertools.chain(*PALETTE[:len(colormap)])))
     return image, colormap
 
@@ -130,12 +136,16 @@ def get_parallax(project):
     for layer in project.root:
         if layer.name in ("Parallax", "Parallax.jpeg"):
             fmt = 'jpeg' if layer.name.endswith('jpeg') else 'png'
-            return layer.get_image_data(), fmt
+            image = layer.get_image_data(raw=False)
+            if layer.opacity < 1.0:
+                dark = Image.new("RGBA", image.size, (0, 0, 0, int((1-layer.opacity) * 255)))
+                image = Image.alpha_composite(image, dark)
+            return image, fmt
     return None, None
 
 
 def make_thumbnail(src, target):
-    with PIL.Image.open(src) as im:
+    with Image.open(src) as im:
         im = im.convert("RGB")
         im.thumbnail((256, 256))
         im.save(target)
@@ -198,6 +208,12 @@ def main(input_path):
     thumbnail = project.get_image_data(use_original=True).convert("RGB")
     thumbnail.thumbnail((256, 256))
     thumbnail.save(path.join(TARGET_DIR, thumb_filename))
+
+    # Copy script (if set)
+    if 'script' in levelinfo:
+        scriptpath = path.join(path.dirname(toml_path), levelinfo['script'])
+        print("Copying script:", scriptpath)
+        shutil.copyfile(scriptpath, path.join(TARGET_DIR, levelinfo['script']))
 
     # Write TOML file with all the additions (most importantly the terrain palette)
     print("Writing TOML file:", toml_filename)
