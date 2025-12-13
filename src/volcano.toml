@@ -1,0 +1,40 @@
+title = "Mount Boom"
+nospawnzones = [
+  # Avoid nuclear reactor
+  { rect = [1711, 1614, 122, 137] },
+  # Don't get stuck behind a pipe
+  { rect = [1873, 1817, 17, 62] },
+]
+
+[script-settings]
+turrets = [
+  { type = "deathray", pos = [843, 612], range = 500 },
+  { type = "deathray", pos = [801, 648], range = 500 },
+  { type = "deathray", pos = [886, 928], range = 500 },
+  { type = "deathray", pos = [788, 744], range = 500 },
+  { type = "deathray", pos = [790, 816], range = 500 },
+  { type = "deathray", pos = [894, 863], range = 500 },
+  { type = "deathray", pos = [800, 904], range = 500 },
+  { type = "deathray", pos = [843, 961], range = 500 },
+  { type = "deathray", pos = [894, 811], range = 500 },
+  { type = "deathray", pos = [894, 863], range = 500 },
+  { type = "deathray", pos = [904, 736], range = 500 },
+  { type = "gun", pos = [903, 359], range = 500, angle = 90 },
+  { type = "gun", pos = [921, 386], range = 500, angle = 90 },
+  { type = "gun", pos = [522, 241], range = 500, angle = 180 },
+  { type = "gun", pos = [559, 181], range = 500, angle = 90 },
+  { type = "gun", pos = [605, 182], range = 500, angle = 90 },
+  { type = "gun", pos = [648, 197], range = 500, angle = 90 },
+  { type = "gun", pos = [669, 271], range = 500, angle = 90 },
+  { type = "gun", pos = [1413, 184], range = 500, angle = 90 },
+  { type = "gun", pos = [1458, 173], range = 500, angle = 90 },
+  { type = "gun", pos = [1499, 177], range = 500, angle = 90 },
+  { type = "gun", pos = [1843, 782], range = 500, angle = 270 },
+  { type = "gun", pos = [1651, 1827], range = 500, angle = 180 },
+  { type = "gun", pos = [1861, 2119], range = 500, angle = 180 },
+  { type = "gun", pos = [150, 1635], range = 500, angle = 270 },
+  { type = "gun", pos = [76, 1289], range = 500, angle = 0 },
+  { type = "gun", pos = [205, 892], range = 500, angle = 270 },
+  { type = "gun", pos = [99, 350], range = 500, angle = 270 },
+  { type = "gun", pos = [180, 355], range = 500, angle = 270 },
+]
