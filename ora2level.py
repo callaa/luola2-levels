@@ -21,7 +21,7 @@ TARGET_DIR = "luola2"
 
 # This matches everything that looks like a terrain type string, even if its not actually
 # supported by the game engine itself.
-TERRAIN_TYPE_RE = re.compile('^(?:[a-z]+)(?:-(?:uw|i))*$')
+TERRAIN_TYPE_RE = re.compile(r'^([a-z]+(?:-(?:uw|i|dyn))*)(\+nocolor)?$')
 
 PALETTE = [
     (0, 0, 0),
@@ -49,15 +49,12 @@ WATER_COLOR_SET = False
 
 def hide_non_terrain_layers(stack):
     for layer in stack:
-        is_terrain = bool(TERRAIN_TYPE_RE.match(layer.name))
-        if TERRAIN_TYPE_RE.match(layer.name):
-            # Terrain groups are rendered as-is
-            continue
+        terrain_name = TERRAIN_TYPE_RE.match(layer.name)
 
-        if layer.type == pyora.TYPE_GROUP:
+        if layer.type == pyora.TYPE_GROUP and not terrain_name:
             hide_non_terrain_layers(layer.children)
         else:
-            layer.visible = False
+            layer.visible = bool(terrain_name) and terrain_name.group(2) != '+nocolor'
 
 
 def intersect_map_bounds(map_w, map_h, x, y, w, h):
@@ -67,6 +64,14 @@ def intersect_map_bounds(map_w, map_h, x, y, w, h):
     y1 = min(y+h, map_h)
 
     return (x0, y0, x1, y1)
+
+
+def get_terrain_name_part(layer_name):
+    terrain_name = TERRAIN_TYPE_RE.match(layer_name)
+    if not terrain_name:
+        raise ValueError(f"Layer name {layer_name} does not match terrain name regex!")
+
+    return terrain_name.group(1)
 
 
 def render_collisionmap(project):
@@ -93,14 +98,15 @@ def render_collisionmap(project):
             image = image.crop((x - layer.offsets[0], y - layer.offsets[1], x2 - layer.offsets[0], y2 - layer.offsets[1]))
             w, h = image.size
 
-        color_idx = get_terrain_color(layer.name)
+        terrain_name = get_terrain_name_part(layer.name)
+        color_idx = get_terrain_color(terrain_name)
 
         mask = numpy.array(image.getdata(3)).reshape(h, w) > 0
 
         # The game uses the palette's water color to replace destroyed underwater pixels
         # This color can be overridden in the TOML file.
         global WATER_COLOR_SET
-        if layer.name == "water" and not WATER_COLOR_SET:
+        if terrain_name == "water" and not WATER_COLOR_SET:
             nonzero = numpy.where(mask == True)
             pixelindex = (nonzero[1][0], nonzero[0][0])
             watercolor = image.getpixel(pixelindex)
