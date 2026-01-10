@@ -1,0 +1,10 @@
+title = "Ancient Ruins"
+starfield = true
+
+[script-settings]
+random-birds = 20
+random-fish = [
+        {count = 5, area = [0, 967, 402, 493]},
+        {count = 8, area = [713, 1449, 1835, 81]},
+]
+
