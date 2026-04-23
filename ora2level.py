@@ -141,16 +141,16 @@ def render_collisionmap(project):
 def get_parallax(project):
     for layer in project.root:
         if layer.name in ("Parallax", "Parallax.jpeg"):
-            fmt = 'jpeg' if layer.name.endswith('jpeg') else 'png'
             image = layer.get_image_data(raw=False)
             if layer.opacity < 1.0:
                 dark = Image.new("RGBA", image.size, (0, 0, 0, int((1-layer.opacity) * 255)))
                 image = Image.alpha_composite(image, dark)
-            return image, fmt
-    return None, None
+            return image
+    return None
 
 
 def make_thumbnail(image):
+    # TODO add parallax background?
     im = image.convert("RGB")
     im.thumbnail((image.size[0], 512))
 
@@ -159,7 +159,7 @@ def make_thumbnail(image):
     draw = ImageDraw.Draw(mask)
     draw.rounded_rectangle(((0, 0), im.size), 32, fill=(255, 255, 255, 255))
 
-    thumbnail = Image.new("RGB", im.size, color=0)
+    thumbnail = Image.new("RGBA", im.size, color=0)
     thumbnail.paste(im, mask=mask)
 
     return thumbnail
@@ -178,7 +178,7 @@ def main(input_path):
     # Output file names
     artwork_filename = basename + "-art.png"
     terrain_filename = basename + "-terrain.png"
-    thumb_filename = basename + "-thumb.jpeg"
+    thumb_filename = basename + "-thumb.png"
     toml_filename = basename + ".toml"
 
     levelinfo["artwork"] = artwork_filename
@@ -199,11 +199,9 @@ def main(input_path):
 
     # Extract parallax background image (if any)
     print("Extracting background image...")
-    parallax, parallax_fmt = get_parallax(project)
+    parallax = get_parallax(project)
     if parallax:
-        if parallax_fmt == 'jpeg':
-            parallax = parallax.convert("RGB")
-        background_filename = f"{basename}-bg.{parallax_fmt}"
+        background_filename = f"{basename}-bg.png"
         print("Saving background:", background_filename)
         parallax.save(path.join(TARGET_DIR, background_filename))
         levelinfo["background"] = background_filename

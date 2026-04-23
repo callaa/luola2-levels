@@ -33,7 +33,6 @@ local original_init_level = luola_init_level
 function luola_init_level(settings)
 	original_init_level(settings)
 
-	create_drop_emitter({725, 191})
 	for _, pos in ipairs(settings.droppers) do
 		create_drop_emitter(Level.to_world_coordinates(pos))
 	end
