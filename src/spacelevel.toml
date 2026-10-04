@@ -1,0 +1,29 @@
+title = "Kessler Syndrome"
+script = "kesslersyndrome.lua"
+starfield = true
+sand = false
+gravity = 0
+
+[script-settings]
+wind = false
+
+# Danger is outside the circular safe area (x, y, r)
+danger_zone = [768, 768, 600]
+
+forcefields = [
+	# Black hole in the center
+	{ bounds = [268, 268, 1000, 1000], point = 5 },
+
+        # Area of strong gravity near the black hole
+        { bounds = [694, 708, 175, 175], point = 20 },
+
+	# Bases
+        { bounds = [65, 82, 22, 13], uniform = [0, -20] },
+        { bounds = [1469, 52, 22, 13], uniform = [0, -20] },
+        { bounds = [1468, 1460, 22, 13], uniform = [0, 20] },
+        { bounds = [53, 1454, 22, 13], uniform = [0, 20] },
+]
+
+[textures]
+lvl_satellite = { file = "satellite.png" }
+

@@ -12,28 +12,40 @@ A Luola2 level is made up of at least the following parts:
 
  * A TOML file for the level's metadata
  * A terrain map image
- * An Artwork image (may be the same as the terrain map)
+ * An artwork image (may be the same as the terrain map)
  * A thumbnail image to be shown in the level selection screen
 
 A level may also include:
 
  * Lua scripts to customize the game
  * A parallax background image
- * Foreground and background billboard elements (not yet implemented)
- * Background music (not yet implemented)
+ * Background music
+ * Custom textures for use in level scripts or to override standard ones
 
 Levels are grouped into level packs, where each level pack is a subfolder inside the game's `data/levels/` folder.
+
+
+## Level metadata
+
+The schema for the metadata file is defined in [src/game/level/levelinfo.rs](https://github.com/callaa/luola2/blob/main/src/game/level/levelinfo.rs), `struct LevelInfoToml`.
+
+At a minimum, the `title` property should be set. The lever converter script will assign the other required properties.
+
+Level specific textures are given in the same format as in [Luola's main texture declaration file](https://github.com/callaa/luola2/blob/main/data/textures/textures.toml).
+
+Custom scripts will typically override the `luola_init_level` function. The script is loaded into the same context as the rest of the game's scripts and may arbitrarily extend the game.
+See the included lua files for examples.
 
 
 ## Level converter
 
 There are two ways to create Luola2 levels: the old-school 8-bit palette way (see the demo levels for an example) or modern true color way with separate artwork and terrain map files.
-The included `ora2level.py` script makes level authoring in the latter style easier by allowing you to put each terrain type into its own layer and group those layers however you like.
+The included `ora2level.py` script makes level authoring in the latter style easier by allowing you to put each terrain type into its own layer and group those layers however you like. The script will generate the terrain map for you.
 
 The script performs the following tasks automatically:
 
  * Exports the OpenRaster file into a merged artwork PNG
- * Merges all terrain layers: non-transparent pixels are assigned a palette index based on the layer's type
+ * Merges all terrain layers: non-transparent pixels are assigned a palette index based on the layer's name
  * Discovers the level's water color (game uses this for destructible underwater terrain)
  * Generates a thumbnail image
  * Extracts the parallax background (if included)
@@ -56,4 +68,4 @@ You need to have Python and uv installed to run the script.
 
 ## License
 
-Luola II Levels © 2025 by Calle Laakkonen is licensed under CC BY-SA 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-sa/4.0/ 
+Luola II Levels © 2025, 2026 by Calle Laakkonen is licensed under CC BY-SA 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-sa/4.0/
