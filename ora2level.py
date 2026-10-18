@@ -7,6 +7,7 @@
 from PIL import Image, ImageDraw
 import numpy
 import itertools
+import hashlib
 import shutil
 from os import path
 import sys
@@ -139,22 +140,17 @@ def render_collisionmap(project):
 
 
 def extract_billboards(project, basename):
+    # Find all billboard layers
     billboard_layers = []
-    # TODO: pack images efficiently (doesn't need to be optimal, as that's NP-complete)
-    # TODO deduplicate identical billboards
-    max_w = 0
-    sum_h = 0
     def walk(stack, x, y):
-        nonlocal max_w
-        nonlocal sum_h
         for layer in stack:
             offx = x + layer.offsets[0]
             offy = y + layer.offsets[1]
             if layer.name == "Billboard":
-                billboard_layers.append((offx, offy, layer))
-                w, h = layer.dimensions
-                max_w = max(max_w, w)
-                sum_h = sum_h + h
+                image_data = layer.get_image_data(raw=True)
+                image_hash = hashlib.sha1(image_data.tobytes(), usedforsecurity=False).hexdigest()
+                billboard_layers.append((offx, offy, image_data, image_hash))
+
             elif layer.type == pyora.TYPE_GROUP:
                 walk(layer.children, offx, offy)
 
@@ -164,28 +160,49 @@ def extract_billboards(project, basename):
         print("No billboards.")
         return [], []
 
-    billboard_toml = []
-    texture_toml = {}
-    texture_filename = f"{basename}-billboards.png"
+    # Billboard layers may be duplicates of each other, so perform a deduplication step
+    layer_hashes = {}  # hash -> texture name
 
-    image = Image.new("RGBA", (max_w, sum_h), color=(0, 0, 0, 0))
+    deduplicated_images = []
+    for (_x, _y, image, image_hash) in billboard_layers:
+        if image_hash not in layer_hashes:
+            layer_hashes[image_hash] = f"lvl_billboard_{len(deduplicated_images)}"
+            deduplicated_images.append(image)
+
+    # Generate the billboard texture
+    # TODO: pack images efficiently (doesn't need to be optimal, as that's NP-complete)
+    texture_filename = f"{basename}-billboards.png"
+    texture_toml = {}
+    billboard_texture = Image.new("RGBA",
+        (
+            max(i.width for i in deduplicated_images),
+            sum(i.height for i in deduplicated_images)
+        ),
+        color=(0, 0, 0, 0)
+    )
     y_offset = 0
-    for idx, (x, y, layer) in enumerate(billboard_layers):
-        print(f"Adding billboard layer at ({x}, {y})")
-        image.paste(layer.get_image_data(raw=True), (0, y_offset))
-        texture_name = f"lvl_billboard_{idx}"
+    for idx, image in enumerate(deduplicated_images):
+        billboard_texture.paste(image, (0, y_offset))
+        texture_toml[f"lvl_billboard_{idx}"] = {
+            "file": texture_filename,
+            "subrect": [0, y_offset, *image.size],
+        }
+        y_offset += image.height
+
+    print("Saving billboard texture:", texture_filename)
+    billboard_texture.save(path.join(TARGET_DIR, texture_filename))
+
+    # Add billboard configurations
+    billboard_toml = []
+    for x, y, _image, image_hash in billboard_layers:
+        texture_name = layer_hashes[image_hash]
+
+        print(f"Adding billboard layer at ({x}, {y}) ({texture_name})")
         billboard_toml.append({
             "pos": [x, y],
             "texture": texture_name,
         })
-        texture_toml[texture_name] = {
-            "file": texture_filename,
-            "subrect": [0, y_offset, *layer.dimensions],
-        }
-        y_offset += layer.dimensions[1]
 
-    print("Saving billboard texture:", texture_filename)
-    image.save(path.join(TARGET_DIR, texture_filename))
     return billboard_toml, texture_toml
 
 

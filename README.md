@@ -13,6 +13,7 @@ A Luola2 level is made up of at least the following parts:
  * A TOML file for the level's metadata
  * A terrain map image
  * An artwork image (may be the same as the terrain map)
+ * OR: a Lua script to procedurally generate the terrain and artwork
  * A thumbnail image to be shown in the level selection screen
 
 A level may also include:
@@ -20,7 +21,8 @@ A level may also include:
  * Lua scripts to customize the game
  * A parallax background image
  * Background music
- * Custom textures for use in level scripts or to override standard ones
+ * Custom textures and sound effects for use in level scripts or to override standard ones
+ * Fixed background images (billboards)
 
 Levels are grouped into level packs, where each level pack is a subfolder inside the game's `data/levels/` folder.
 
@@ -29,7 +31,7 @@ Levels are grouped into level packs, where each level pack is a subfolder inside
 
 The schema for the metadata file is defined in [src/game/level/levelinfo.rs](https://github.com/callaa/luola2/blob/main/src/game/level/levelinfo.rs), `struct LevelInfoToml`.
 
-At a minimum, the `title` property should be set. The lever converter script will assign the other required properties.
+At a minimum, the `title` property should be set. The converter script will assign the other required properties.
 
 Level specific textures are given in the same format as in [Luola's main texture declaration file](https://github.com/callaa/luola2/blob/main/data/textures/textures.toml).
 
@@ -49,14 +51,17 @@ The script performs the following tasks automatically:
  * Discovers the level's water color (game uses this for destructible underwater terrain)
  * Generates a thumbnail image
  * Extracts the parallax background (if included)
+ * Extracts billboards (if present) and generates texture and billboard configurations
  * Adds filenames and the terrain type map to the TOML file
 
 The converter determines the type of the layer based on its name:
 
  * Anything that looks like a terrain type (e.g. "ground" or "base-uw-i") is interpreted to contain terrain of that type. (The script does not validate that the type is actually supported by the game engine.)
  * Layers not named accordingly will be hidden
+ * A terrain layer ending with `+nocolor` will not be included in the artwork, but WILL be included in the terrain map
  * Layer group names are ignored. Layer groups may be arbitrarily nested.
  * Layer or group named "Parallax" will be extracted as the parallax background image
+ * Layers named "Billboard" will be added into the level's billboard texture atlas
 
 To convert an OpenRaster file:
 
