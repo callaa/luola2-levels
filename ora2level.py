@@ -101,7 +101,7 @@ def render_collisionmap(project):
         terrain_name = get_terrain_name_part(layer.name)
         color_idx = get_terrain_color(terrain_name)
 
-        mask = numpy.array(image.getdata(3)).reshape(h, w) > 0
+        mask = numpy.array(image.get_flattened_data(3)).reshape(h, w) > 0
 
         # The game uses the palette's water color to replace destroyed underwater pixels
         # This color can be overridden in the TOML file.
@@ -136,6 +136,57 @@ def render_collisionmap(project):
     image = Image.fromarray(imagedata, 'P')
     image.putpalette(list(itertools.chain(*PALETTE[:len(colormap)])))
     return image, colormap
+
+
+def extract_billboards(project, basename):
+    billboard_layers = []
+    # TODO: pack images efficiently (doesn't need to be optimal, as that's NP-complete)
+    # TODO deduplicate identical billboards
+    max_w = 0
+    sum_h = 0
+    def walk(stack, x, y):
+        nonlocal max_w
+        nonlocal sum_h
+        for layer in stack:
+            offx = x + layer.offsets[0]
+            offy = y + layer.offsets[1]
+            if layer.name == "Billboard":
+                billboard_layers.append((offx, offy, layer))
+                w, h = layer.dimensions
+                max_w = max(max_w, w)
+                sum_h = sum_h + h
+            elif layer.type == pyora.TYPE_GROUP:
+                walk(layer.children, offx, offy)
+
+    walk(project.root, 0, 0)
+
+    if not billboard_layers:
+        print("No billboards.")
+        return [], []
+
+    billboard_toml = []
+    texture_toml = {}
+    texture_filename = f"{basename}-billboards.png"
+
+    image = Image.new("RGBA", (max_w, sum_h), color=(0, 0, 0, 0))
+    y_offset = 0
+    for idx, (x, y, layer) in enumerate(billboard_layers):
+        print(f"Adding billboard layer at ({x}, {y})")
+        image.paste(layer.get_image_data(raw=True), (0, y_offset))
+        texture_name = f"lvl_billboard_{idx}"
+        billboard_toml.append({
+            "pos": [x, y],
+            "texture": texture_name,
+        })
+        texture_toml[texture_name] = {
+            "file": texture_filename,
+            "subrect": [0, y_offset, *layer.dimensions],
+        }
+        y_offset += layer.dimensions[1]
+
+    print("Saving billboard texture:", texture_filename)
+    image.save(path.join(TARGET_DIR, texture_filename))
+    return billboard_toml, texture_toml
 
 
 def get_parallax(project):
@@ -214,6 +265,21 @@ def main(input_path):
     artwork = pyora.Renderer(project).render()
     print("Saving artwork:", artwork_filename)
     artwork.save(path.join(TARGET_DIR, artwork_filename))
+
+    # Save billboards
+    print("Extracting billboards...")
+    billboard_toml, billboard_textures_toml = extract_billboards(project, basename)
+    if billboard_toml:
+        textures = levelinfo.get("textures")
+        if textures is None:
+            textures = levelinfo["textures"] = tomlkit.table()
+
+        for k, v in billboard_textures_toml.items():
+            it = tomlkit.inline_table()
+            it |= v
+            textures[k] = it
+
+        levelinfo["billboard"] = billboard_toml
 
     # Make thumbnail (from original ORA mergedimage)
     print("Saving thumbnail:", thumb_filename)
