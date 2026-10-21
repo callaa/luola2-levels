@@ -146,10 +146,10 @@ def extract_billboards(project, basename):
         for layer in stack:
             offx = x + layer.offsets[0]
             offy = y + layer.offsets[1]
-            if layer.name == "Billboard":
+            if layer.name in ("Billboard", "Foreground"):
                 image_data = layer.get_image_data(raw=True)
                 image_hash = hashlib.sha1(image_data.tobytes(), usedforsecurity=False).hexdigest()
-                billboard_layers.append((offx, offy, image_data, image_hash))
+                billboard_layers.append((offx, offy, image_data, image_hash, layer.name == "Foreground"))
 
             elif layer.type == pyora.TYPE_GROUP:
                 walk(layer.children, offx, offy)
@@ -164,7 +164,7 @@ def extract_billboards(project, basename):
     layer_hashes = {}  # hash -> texture name
 
     deduplicated_images = []
-    for (_x, _y, image, image_hash) in billboard_layers:
+    for (_x, _y, image, image_hash, _fg) in billboard_layers:
         if image_hash not in layer_hashes:
             layer_hashes[image_hash] = f"lvl_billboard_{len(deduplicated_images)}"
             deduplicated_images.append(image)
@@ -194,14 +194,18 @@ def extract_billboards(project, basename):
 
     # Add billboard configurations
     billboard_toml = []
-    for x, y, _image, image_hash in billboard_layers:
+    for x, y, _image, image_hash, fg in billboard_layers:
         texture_name = layer_hashes[image_hash]
 
         print(f"Adding billboard layer at ({x}, {y}) ({texture_name})")
-        billboard_toml.append({
+        bb = {
             "pos": [x, y],
             "texture": texture_name,
-        })
+        }
+        if fg:
+            bb["fg"] = True
+
+        billboard_toml.append(bb)
 
     return billboard_toml, texture_toml
 
